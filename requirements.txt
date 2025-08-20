@@ -1,6 +1,6 @@
+Flask
 selenium
 webdriver-manager
 icalendar
 pytz
-flask
 gunicorn
