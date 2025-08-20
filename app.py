@@ -13,7 +13,22 @@ import os
 
 app = Flask(__name__)
 
-HTML_FORM = """ ... """  # your HTML form here
+HTML_FORM = HTML_FORM = """
+<!DOCTYPE html>
+<html>
+<head>
+<title>Work Schedule to iCal</title>
+</head>
+<body>
+<h2>Enter Whole Foods Credentials</h2>
+<form method="POST">
+    Email: <input type="text" name="email"><br><br>
+    Password: <input type="password" name="password"><br><br>
+    <input type="submit" value="Generate iCal">
+</form>
+</body>
+</html>
+""" # your HTML form here
 
 @app.route("/", methods=["GET", "POST"])
 def index():
