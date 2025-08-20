@@ -1,3 +1,4 @@
+# app.py
 from flask import Flask, request, send_file, render_template_string
 from selenium import webdriver
 from selenium.webdriver.common.by import By
@@ -13,7 +14,11 @@ import os
 
 app = Flask(__name__)
 
-HTML_FORM = HTML_FORM = """
+# Use Render's port or default
+port = int(os.environ.get("PORT", 5000))
+
+# Simple HTML form
+HTML_FORM = """
 <!DOCTYPE html>
 <html>
 <head>
@@ -28,7 +33,7 @@ HTML_FORM = HTML_FORM = """
 </form>
 </body>
 </html>
-""" # your HTML form here
+"""
 
 @app.route("/", methods=["GET", "POST"])
 def index():
@@ -40,28 +45,39 @@ def index():
     return render_template_string(HTML_FORM)
 
 def generate_ical(email, password):
+    # Setup Chrome options for headless Render
     options = webdriver.ChromeOptions()
     options.add_argument("--headless")
     options.add_argument("--no-sandbox")
     options.add_argument("--disable-dev-shm-usage")
-    driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=options)
+    # Explicitly point to Render's Chromium binary
+    options.binary_location = "/usr/bin/chromium-browser"  # or "/usr/bin/chromium"
+
+    driver = webdriver.Chrome(
+        service=Service(ChromeDriverManager().install()),
+        options=options
+    )
 
     # --- LOGIN ---
     driver.get("https://innerview.wholefoods.com/")
     time.sleep(3)
+
     driver.find_element(By.ID, "i0116").send_keys(email + Keys.RETURN)
     time.sleep(2)
+
     driver.find_element(By.ID, "i0118").send_keys(password + Keys.RETURN)
     time.sleep(3)
+
     try:
-        driver.find_element(By.ID, "idBtn_Back").click()
+        driver.find_element(By.ID, "idBtn_Back").click()  # stay signed in
     except:
         pass
 
-    # --- SCRAPE ---
+    # --- GO TO SCHEDULE ---
     driver.get("https://innerview.amazon.dev/schedule")
     time.sleep(5)
 
+    # --- SCRAPE ---
     calendar = Calendar()
     calendar.add('prodid', '-//My Work Schedule//mxm.dk//')
     calendar.add('version', '2.0')
@@ -71,14 +87,14 @@ def generate_ical(email, password):
     for row in rows:
         day_elem = row.find_element(By.CSS_SELECTOR, 'p[mdn-text]')
         day_str = day_elem.text.replace("(Today) ", "")
-        day_dt = datetime.strptime(day_str, "%A, %b %d")
-        day_dt = day_dt.replace(year=datetime.now().year)
+        day_dt = datetime.strptime(day_str, "%A, %b %d").replace(year=datetime.now().year)
 
         shifts = row.find_elements(By.CSS_SELECTOR, 'div[data-testid="shift-info"]')
         for shift in shifts:
             times = shift.find_elements(By.CSS_SELECTOR, 'p[mdn-text]')
             start_str = times[0].text if len(times) > 0 else ""
             end_str = times[1].text if len(times) > 1 else ""
+
             start_time = datetime.strptime(start_str, "%I:%M %p")
             end_time = datetime.strptime(end_str, "%I:%M %p")
             start_dt = day_dt.replace(hour=start_time.hour, minute=start_time.minute)
@@ -96,6 +112,7 @@ def generate_ical(email, password):
 
     driver.quit()
 
+    # Save to temporary file
     tmp_file = tempfile.NamedTemporaryFile(delete=False, suffix=".ics")
     with open(tmp_file.name, "wb") as f:
         f.write(calendar.to_ical())
@@ -103,5 +120,4 @@ def generate_ical(email, password):
     return tmp_file.name
 
 if __name__ == "__main__":
-    port = int(os.environ.get("PORT", 5000))
     app.run(host="0.0.0.0", port=port, debug=True)
