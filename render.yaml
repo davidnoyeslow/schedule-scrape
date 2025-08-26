@@ -1,0 +1,10 @@
+services:
+  - type: web
+    name: schedule-ical
+    env: python
+    plan: starter
+    buildCommand: |
+      apt-get update && \
+      apt-get install -y chromium-browser chromium-driver && \
+      pip install -r requirements.txt
+    startCommand: gunicorn app:app --bind 0.0.0.0:$PORT --workers 1 --threads 2 --timeout 300

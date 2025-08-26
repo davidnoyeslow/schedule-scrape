@@ -1,4 +1,3 @@
-# app.py
 from flask import Flask, request, send_file, render_template_string
 from selenium import webdriver
 from selenium.webdriver.common.by import By
@@ -14,10 +13,7 @@ import os
 
 app = Flask(__name__)
 
-# Use Render's port or default
-port = int(os.environ.get("PORT", 5000))
-
-# Simple HTML form
+# --- HTML Form ---
 HTML_FORM = """
 <!DOCTYPE html>
 <html>
@@ -45,18 +41,14 @@ def index():
     return render_template_string(HTML_FORM)
 
 def generate_ical(email, password):
-    # Setup Chrome options for headless Render
+    # Setup Chrome options
     options = webdriver.ChromeOptions()
     options.add_argument("--headless")
     options.add_argument("--no-sandbox")
     options.add_argument("--disable-dev-shm-usage")
-    # Explicitly point to Render's Chromium binary
-    options.binary_location = "/usr/bin/chromium-browser"  # or "/usr/bin/chromium"
+    options.binary_location = "/usr/bin/chromium-browser"  # <-- required on Render
 
-    driver = webdriver.Chrome(
-        service=Service(ChromeDriverManager().install()),
-        options=options
-    )
+    driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=options)
 
     # --- LOGIN ---
     driver.get("https://innerview.wholefoods.com/")
@@ -86,8 +78,9 @@ def generate_ical(email, password):
 
     for row in rows:
         day_elem = row.find_element(By.CSS_SELECTOR, 'p[mdn-text]')
-        day_str = day_elem.text.replace("(Today) ", "")
-        day_dt = datetime.strptime(day_str, "%A, %b %d").replace(year=datetime.now().year)
+        day_str = day_elem.text.replace("(Today) ", "")  # remove "(Today)" prefix if present
+        day_dt = datetime.strptime(day_str, "%A, %b %d")
+        day_dt = day_dt.replace(year=datetime.now().year)
 
         shifts = row.find_elements(By.CSS_SELECTOR, 'div[data-testid="shift-info"]')
         for shift in shifts:
@@ -118,6 +111,3 @@ def generate_ical(email, password):
         f.write(calendar.to_ical())
 
     return tmp_file.name
-
-if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=port, debug=True)
