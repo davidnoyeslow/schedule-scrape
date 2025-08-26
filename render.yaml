@@ -1,10 +1,14 @@
 services:
   - type: web
-    name: schedule-ical
+    name: schedule-to-ical
     env: python
-    plan: starter
+    plan: starter # or free if testing
     buildCommand: |
-      apt-get update && \
-      apt-get install -y chromium-browser chromium-driver && \
+      apt-get update && apt-get install -y chromium-browser chromium-chromedriver
       pip install -r requirements.txt
-    startCommand: gunicorn app:app --bind 0.0.0.0:$PORT --workers 1 --threads 2 --timeout 300
+    startCommand: gunicorn app:app
+    envVars:
+      - key: CHROME_BIN
+        value: /usr/bin/chromium-browser
+      - key: CHROMEDRIVER_PATH
+        value: /usr/bin/chromedriver

@@ -46,9 +46,14 @@ def generate_ical(email, password):
     options.add_argument("--headless")
     options.add_argument("--no-sandbox")
     options.add_argument("--disable-dev-shm-usage")
-    options.binary_location = "/usr/bin/chromium-browser"  # <-- required on Render
 
-    driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=options)
+# Point to the installed Chromium binary
+    options.binary_location = os.environ.get("CHROME_BIN", "/usr/bin/chromium-browser")
+
+    driver = webdriver.Chrome(
+        service=Service(os.environ.get("CHROMEDRIVER_PATH", "/usr/bin/chromedriver")),
+        options=options
+    )
 
     # --- LOGIN ---
     driver.get("https://innerview.wholefoods.com/")
